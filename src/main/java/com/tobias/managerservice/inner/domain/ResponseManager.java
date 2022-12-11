@@ -10,7 +10,7 @@ public class ResponseManager {
     private String name;
     private String nickname;
     private String email;
-    private Manager.Gender gender;
-    private Date birth;
+    private String gender;
+    private String birth;
     private String phone;
 }
