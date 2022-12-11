@@ -10,11 +10,12 @@ import java.util.Date;
 @Data
 public class SaleRequestDto implements Serializable {
     private int id;
+    private int salerId;
     private String name;
     private String nickname;
     private String email;
-    private SaleRequest.Gender gender;
-    private Date birth;
+    private String gender;
+    private String birth;
     private String phone;
     private String website;
 }

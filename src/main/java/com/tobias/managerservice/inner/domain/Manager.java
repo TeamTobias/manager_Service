@@ -13,17 +13,14 @@ import java.util.Date;
 @Setter
 @Entity
 public class Manager {
-    public enum Gender{
-        MALE, FEMALE
-    }
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private String name;
     private String nickname;
     private String email;
-    private Gender gender;
-    private Date birth;
+    private String gender;
+    private String birth;
     private String phone;
 
     public static Manager createManager(RequestManager requestManager){
