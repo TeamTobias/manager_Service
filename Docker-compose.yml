@@ -10,7 +10,7 @@ services:
     volumes:
       - /app
     networks:
-      - managerservice-network
+      - manager-network
 
   app4:
     image: imkunyoung/gatewayservice_manager:1.0
@@ -22,7 +22,7 @@ services:
     volumes:
       - /app4
     networks:
-      - managerservice-network
+      - manager-network
 
   app5:
     image: imkunyoung/configservice:1.0
@@ -34,27 +34,7 @@ services:
     volumes:
       - /app5
     networks:
-      - managerservice-network
-
-  manager-mariadb:
-    image: mariadb:latest
-    container_name: manager-mariadb
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
-      - MYSQL_ROOT_PASSWORD=1234
-      - MYSQL_DATABASE=managerservice
-      - MYSQL_USER=managerservice
-      - MYSQL_PASSWORD=1234
-    #    ports:
-    #      - 3306:3306
-    volumes:
-      - ~/docker/manager-mariadb/var/lib/mysql:/var/lib/mysql
-      - ~/docker/manager-mariadb/var/log/maria:/var/log/maria
-    networks:
-      - managerservice-network
-
-
+      - manager-network
 
 
   zookeeper:
@@ -64,7 +44,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
-      - managerservice-network
+      - manager-network
   kafka:
     image: confluentinc/cp-kafka:7.2.1
     container_name: kafka
@@ -81,29 +61,49 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_ADVERTISED_HOST_NAME: kafka
     networks:
-      - managerservice-network
+      - manager-network
+
+
+  manager-mariadb:
+    image: mariadb:latest
+    container_name: manager-mariadb
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=managerservice
+      - MYSQL_USER=managerservice
+      - MYSQL_PASSWORD=1234
+    #    ports:
+    #      - 3306:3306
+    volumes:
+      - ~/docker/managers-mariadb/var/lib/mysql:/var/lib/mysql
+      - ~/docker/managers-mariadb/var/log/maria:/var/log/maria
+    networks:
+      - manager-network
 
   app13:
     image: imkunyoung/managerservice:1.0
     container_name: managerservice
+    environment:
+      - eureka.client.serviceUrl.defaultZone=http://discoveryservice:8761/eureka/
+      - spring.cloud.config.uri=http://configservice:8888
+      - spring.profiles.active=prod
+      - spring.datasource.url=jdbc:mariadb://manager-mariadb:3306/managerservice?serverTimezone=UTC&characterEncoding=UTF-8&useSSL=false
+      - spring.datasource.username=managerservice
+      - spring.datasource.password=1234
+      - spring.kafka.bootstrap-servers=kafka:9092
     depends_on:
       - manager-mariadb
       - app
       - app5
       - kafka
-    environment:
-      - eureka.client.serviceUrl.defaultZone=http://discoveryservice:8761/eureka/
-      - spring.cloud.config.uri=http://configservice:8888
-      - spring.profiles.active=prod
-      - spring.datasource.url=jdbc:mariadb://manager-mariadb:3306/managerservice
-      - spring.datasource.username=managerservice
-      - spring.datasource.password=1234
     volumes:
       - /app13
     networks:
-      - managerservice-network
+      - manager-network
 
 networks:
-  managerservice-network:
+  manager-network:
     driver: bridge
 
