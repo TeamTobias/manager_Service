@@ -1,0 +1,109 @@
+version: '3.8'
+
+
+services:
+  app:
+    image: imkunyoung/discoveryservice
+    container_name: discoveryservice
+    ports:
+      - 8761:8761
+    volumes:
+      - /app
+    networks:
+      - manager-network
+
+  app4:
+    image: imkunyoung/gatewayservice_manager:1.0
+    container_name: gatewayservice_manager
+    environment:
+      - eureka.client.serviceUrl.defaultZone=http://discoveryservice:8761/eureka/
+    ports:
+      - 82:82
+    volumes:
+      - /app4
+    networks:
+      - manager-network
+
+  app5:
+    image: imkunyoung/configservice:1.0
+    container_name: configservice
+    environment:
+      - eureka.client.serviceUrl.defaultZone=http://discoveryservice:8761/eureka/
+    ports:
+      - 8888:8888
+    volumes:
+      - /app5
+    networks:
+      - manager-network
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - manager-network
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+    networks:
+      - manager-network
+
+
+  manager-mariadb:
+    image: mariadb:latest
+    container_name: manager-mariadb
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=managerservice
+      - MYSQL_USER=managerservice
+      - MYSQL_PASSWORD=1234
+    #    ports:
+    #      - 3306:3306
+    volumes:
+      - ~/docker/managers-mariadb/var/lib/mysql:/var/lib/mysql
+      - ~/docker/managers-mariadb/var/log/maria:/var/log/maria
+    networks:
+      - manager-network
+
+  app13:
+    image: imkunyoung/managerservice:1.0
+    container_name: managerservice
+    environment:
+      - eureka.client.serviceUrl.defaultZone=http://discoveryservice:8761/eureka/
+      - spring.cloud.config.uri=http://configservice:8888
+      - spring.profiles.active=prod
+      - spring.datasource.url=jdbc:mariadb://manager-mariadb:3306/managerservice?serverTimezone=UTC&characterEncoding=UTF-8&useSSL=false
+      - spring.datasource.username=managerservice
+      - spring.datasource.password=1234
+      - spring.kafka.bootstrap-servers=kafka:9092
+    depends_on:
+      - manager-mariadb
+      - app
+      - app5
+      - kafka
+    volumes:
+      - /app13
+    networks:
+      - manager-network
+
+networks:
+  manager-network:
+    driver: bridge
+
